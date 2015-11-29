@@ -21,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -32,6 +33,7 @@ public class MainActivity extends ActionBarActivity {
     BluetoothAdapter mBluetoothAdapter = null;
     BluetoothSocket mBluetoothSocket = null;
     OutputStream mOutputStream = null;
+    InputStream mInputStream = null;
     private static final UUID BT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final int REQUEST_ENABLE_BT = 2;
 
@@ -51,6 +53,11 @@ public class MainActivity extends ActionBarActivity {
 
     private void resetConnection()
     {
+        if (mInputStream != null) {
+            try {mInputStream.close();} catch (Exception e) {}
+            mInputStream = null;
+        }
+
         if (mOutputStream != null) {
             try {mOutputStream.close();} catch (Exception e) {}
             mOutputStream = null;
@@ -83,7 +90,7 @@ public class MainActivity extends ActionBarActivity {
                 if (device.getName().equals("HC-05")){
                     try {
 
-                        Log.d(this.getClass().getName(),"Connect success = " + device.getName());
+                        Log.d(this.getClass().getName(), "Connect success = " + device.getName());
 
                         mBluetoothAdapter.cancelDiscovery();
 
@@ -94,6 +101,7 @@ public class MainActivity extends ActionBarActivity {
 
                         String message = "Device Connected";
                         mOutputStream = mBluetoothSocket.getOutputStream();
+
                         mOutputStream.write(message.getBytes());
                         mOutputStream.flush();
 
@@ -132,6 +140,35 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 String msg = edTxt.getText().toString();
+
+                if(msg.equals("1"))
+                {
+                    for(int i=0;i<10;i++) {
+                        try {
+                            mOutputStream.write(msg.getBytes());
+                            mOutputStream.flush();
+
+                            edTxt.setText("");
+
+                            if (mInputStream == null)
+                                mInputStream = mBluetoothSocket.getInputStream();
+
+                            if (mBluetoothSocket != null && mInputStream != null) {
+                                Log.d("Main", "waiting read");
+
+                                final int r = mInputStream.read();
+                                Log.d("Main", String.valueOf(r));
+
+                                Toast.makeText(MainActivity.this, "heart = " + String.valueOf(r), Toast.LENGTH_SHORT).show();
+
+                            }
+
+                        } catch (Exception e) {
+                            Log.d("Main", "Exception = " + e.getMessage());
+                        }
+                    }
+                    return;
+                }
                 if(Status==1)
                 {
                     try {
@@ -161,6 +198,8 @@ public class MainActivity extends ActionBarActivity {
                             {
                                 Log.d("Main", "socket is null");
                                 Status = -1;
+                                Thread.sleep(500);
+                                return;
                             }
                             if(mBluetoothSocket!=null && !mBluetoothSocket.isConnected())
                             {
@@ -191,6 +230,7 @@ public class MainActivity extends ActionBarActivity {
 
                                     Orange.setVisibility(View.INVISIBLE);
                                     Red.setVisibility(View.INVISIBLE);
+
                                     break;
                             }
 
